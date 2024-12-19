@@ -10,6 +10,27 @@ function makeClickableLinks($text) {
     return $text;
 }
 
+// Функция для архивации постов
+function archivePosts() {
+    $archiveDir = 'archive/';
+    $timestamp = date('Y-m-d_H-i-s'); // Формат даты и времени
+    $archiveFile = $archiveDir . "posts_$timestamp.html";
+
+    // Перемещаем содержимое posts.html в архив
+    if (file_exists('posts.html')) {
+        rename('posts.html', $archiveFile);
+    }
+
+    // Создаем новый пустой posts.html
+    file_put_contents('posts.html', '');
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+
+
+}
+
+
+
 // Проверяем, была ли отправлена форма для добавления поста
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
     $title = htmlspecialchars($_POST['title']);
@@ -109,6 +130,13 @@ $posts = file_get_contents('posts.html');
             <input type="hidden" name="action" value="delete">
             <button type="submit" class="bt">Удалить</button>
         </form>
+
+        <h2 class='pt'>Архивировать записи</h2>
+        <form method="post" action="">
+            <input type="hidden" name="action" value="archive">
+            <button type="submit" class="bt">Архивировать</button>
+        </form>
+
 
         <h2 class='pt'>Существующие записи</h2>
         <div>
