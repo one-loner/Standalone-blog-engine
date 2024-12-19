@@ -1,8 +1,20 @@
 <?php
+// Функция для преобразования текста с URL в кликабельные ссылки
+function makeClickableLinks($text) {
+    // Регулярное выражение для поиска URL
+    $text = preg_replace(
+        '/(https?:\/\/[^\s]+)/',
+        '<a href="$1" target="_blank">$1</a>',
+        $text
+    );
+    return $text;
+}
+
 // Проверяем, была ли отправлена форма для добавления поста
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
     $title = htmlspecialchars($_POST['title']);
     $content = nl2br(htmlspecialchars($_POST['content'])); // Преобразуем переносы строк
+    $content = makeClickableLinks($content); // Преобразуем URL в кликабельные ссылки
 
     // Обработка загрузки изображения (необязательная)
     $uploadDir = 'uploads/'; // Директория для загрузки изображений
@@ -25,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         if ($uploadOk == 1) {
             if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
                 // Сохраняем пост в файл с изображением
-                $post = "<div class='p'><h2 class='pt'>$title</h2><img src='$uploadFile' alt='$title' style='max-width: 100%;'class='centered-image'><p class='pg'>$content</p></div><hr>";
+                $post = "<div class='p'><h2 class='pt'>$title</h2><img src='$uploadFile' alt='$title' style='max-width: 100%;' class='centered-image'><p class='pg'>$content</p></div><hr>";
                 file_put_contents('posts.html', $post, FILE_APPEND);
                 header("Location: /");
                 exit;
@@ -80,7 +92,8 @@ $posts = file_get_contents('posts.html');
 </head>
 <body>
     <div class='page'>
-        <h2 class='pt'>Добавить новую запись</h2>
+
+ <h2 class='pt'>Добавить новую запись</h2>
         <form method="post" action="" enctype="multipart/form-data">
             <input type="text" name="title" placeholder="Название записи" required> <br>
             <textarea name="content" placeholder="Текст записи" required></textarea> <br>
@@ -88,7 +101,8 @@ $posts = file_get_contents('posts.html');
             <input type="hidden" name="action" value="add">
             <button type="submit" class="bt">Опубликовать</button>
         </form>
-<h2 class='pt'>Удалить запись</h2>
+        
+        <h2 class='pt'>Удалить запись</h2>
         <form method="post" action="">
             <input type="text" name="titleToDelete" placeholder="Название записи для удаления" required>
             <input type="hidden" name="action" value="delete">
@@ -102,4 +116,3 @@ $posts = file_get_contents('posts.html');
     </div>
 </body>
 </html>
-
