@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
                 // Сохраняем пост в файл с изображением
                 $post = "<div class='p'><h2 class='pt'>$title</h2><img src='$uploadFile' alt='$title' style='max-width: 100%;' class='centered-image'><p class='pg'>$content</p></div><hr>";
                 file_put_contents('posts.html', $post, FILE_APPEND);
-                header("Location: /");
+                header("Location: " . $_SERVER['PHP_SELF']);
                 exit;
             } else {
                 echo "Извините, произошла ошибка при загрузке вашего файла.";
@@ -49,9 +49,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
         // Сохраняем пост в файл без изображения
         $post = "<div class='p'><h2 class='pt'>$title</h2><p class='pg'>$content</p></div><hr>";
         file_put_contents('posts.html', $post, FILE_APPEND);
-        header("Location: /");
+        header("Location: " . $_SERVER['PHP_SELF']);
         exit;
     }
+
 }
 
 // Проверяем, была ли отправлена форма для удаления поста
@@ -74,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['a
 
     // Сохраняем обновленный список постов
     file_put_contents('posts.html', implode("<hr>", $newPostsArray));
-    header("Location: /");
+    header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
