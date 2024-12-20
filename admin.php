@@ -12,21 +12,11 @@ function makeClickableLinks($text) {
 
 // Функция для архивации постов
 function archivePosts() {
-    $archiveDir = 'archive/';
-    $timestamp = date('Y-m-d_H-i-s'); // Формат даты и времени
-    $archiveFile = $archiveDir . "posts_$timestamp.html";
-
-    // Перемещаем содержимое posts.html в архив
-    if (file_exists('posts.html')) {
-        rename('posts.html', $archiveFile);
-    }
-
-    // Создаем новый пустой posts.html
-    file_put_contents('posts.html', '');
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit;
-
-
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Замените на нужный URL
+    header("Location: archive.php");
+    exit(); // Завершите выполнение скрипта после редиректа
+}
 }
 
 
@@ -118,8 +108,8 @@ $posts = file_get_contents('posts.html');
  <h2 class='pt'>Добавить новую запись</h2>
         <form method="post" action="" enctype="multipart/form-data">
             <input type="text" name="title" placeholder="Название записи" required> <br>
-            <textarea name="content" placeholder="Текст записи" required></textarea> <br>
-            <input type="file" name="image" accept="image/*">
+            <textarea name="content" placeholder="Текст записи" required></textarea> <br> <br>
+            <input type="file" name="image" accept="image/*"> <!--  /* // */   -->
             <input type="hidden" name="action" value="add">
             <button type="submit" class="bt">Опубликовать</button>
         </form>
@@ -130,13 +120,11 @@ $posts = file_get_contents('posts.html');
             <input type="hidden" name="action" value="delete">
             <button type="submit" class="bt">Удалить</button>
         </form>
-
-        <h2 class='pt'>Архивировать записи</h2>
-        <form method="post" action="">
-            <input type="hidden" name="action" value="archive">
-            <button type="submit" class="bt">Архивировать</button>
-        </form>
-
+        <br><br><hr><br><br>
+        <h2 class='pt'> <a href="archive.php">Архивировать записи</a> </h2><br>
+        <br><br>
+        
+        <hr> 
 
         <h2 class='pt'>Существующие записи</h2>
         <div>
