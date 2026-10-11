@@ -1,135 +1,63 @@
 <?php
-// Функция для преобразования текста с URL в кликабельные ссылки
-function makeClickableLinks($text) {
-    // Регулярное выражение для поиска URL
-    $text = preg_replace(
-        '/(https?:\/\/[^\s]+)/',
-        '<a href="$1" target="_blank">$1</a>',
-        $text
-    );
-    return $text;
-}
+session_start();
 
-// Функция для архивации постов
-function archivePosts() {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Замените на нужный URL
-    header("Location: archive.php");
-    exit(); // Завершите выполнение скрипта после редиректа
-}
-}
+// Замените на свой логин и хеш пароля.
+// Хеш можно получить командой: php -r "echo password_hash('ваш_пароль', PASSWORD_DEFAULT), PHP_EOL;"
+const ADMIN_LOGIN = 'admin';
+const ADMIN_PASSWORD_HASH = '$2y$10$ВСТАВЬТЕ_СЮДА_ХЕШ_ПАРОЛЯ';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'login') {
+    $login = $_POST['login'] ?? '';
+    $password = $_POST['password'] ?? '';
 
+    if (
+        hash_equals(ADMIN_LOGIN, $login) &&
+        password_verify($password, ADMIN_PASSWORD_HASH)
+    ) {
+        session_regenerate_id(true);
+        $_SESSION['authorized'] = true;
 
-// Проверяем, была ли отправлена форма для добавления поста
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
-    $title = htmlspecialchars($_POST['title']);
-    $content = nl2br(htmlspecialchars($_POST['content'])); // Преобразуем переносы строк
-    $content = makeClickableLinks($content); // Преобразуем URL в кликабельные ссылки
-
-    // Обработка загрузки изображения (необязательная)
-    $uploadDir = 'uploads/'; // Директория для загрузки изображений
-    $imageFileType = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-    $uploadOk = 1;
-
-    // Проверка на существование файла, если файл загружен
-    if (isset($_FILES['image']) && $_FILES['image']['error'] == UPLOAD_ERR_OK) {
-        // Генерируем случайное имя файла
-        $randomFileName = uniqid() . '.' . $imageFileType;
-        $uploadFile = $uploadDir . $randomFileName;
-
-        // Проверка типа файла
-        if ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg" && $imageFileType != "gif") {
-            echo "Извините, только JPG, JPEG, PNG и GIF файлы разрешены.";
-            $uploadOk = 0;
-        }
-
-        // Проверка на ошибки загрузки
-        if ($uploadOk == 1) {
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
-                // Сохраняем пост в файл с изображением
-                $post = "<div class='p'><h2 class='pt'>$title</h2><img src='$uploadFile' alt='$title' style='max-width: 100%;' class='centered-image'><p class='pg'>$content</p></div><hr>";
-                file_put_contents('posts.html', $post, FILE_APPEND);
-                header("Location: " . $_SERVER['PHP_SELF']);
-                exit;
-            } else {
-                echo "Извините, произошла ошибка при загрузке вашего файла.";
-            }
-        }
-    } else {
-        // Сохраняем пост в файл без изображения
-        $post = "<div class='p'><h2 class='pt'>$title</h2><p class='pg'>$content</p></div><hr>";
-        file_put_contents('posts.html', $post, FILE_APPEND);
-        header("Location: " . $_SERVER['PHP_SELF']);
+        header('Location: ' . $_SERVER['PHP_SELF']);
         exit;
     }
 
+    $loginError = 'Неверный логин или пароль.';
 }
 
-// Проверяем, была ли отправлена форма для удаления поста
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'delete') {
-    $titleToDelete = htmlspecialchars($_POST['titleToDelete']);
+if (isset($_GET['logout'])) {
+    $_SESSION = [];
+    session_destroy();
 
-    // Загружаем существующие посты
-    $posts = file_get_contents('posts.html');
-
-    // Разбиваем посты на массив
-    $postsArray = explode("<hr>", $posts);
-    $newPostsArray = [];
-
-    // Удаляем пост с указанным заголовком
-    foreach ($postsArray as $post) {
-        if (strpos($post, "<h2 class='pt'>$titleToDelete</h2>") === false) {
-            $newPostsArray[] = $post;
-        }
-    }
-
-    // Сохраняем обновленный список постов
-    file_put_contents('posts.html', implode("<hr>", $newPostsArray));
-    header("Location: " . $_SERVER['PHP_SELF']);
+    header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
 
-// Загружаем существующие посты
-$posts = file_get_contents('posts.html');
-?>
+if (empty($_SESSION['authorized'])) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Вход</title>
+    </head>
+    <body>
+        <h2>Вход в панель управления</h2>
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standalone blog</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class='page'>
+        <?php if (!empty($loginError)): ?>
+            <p><?= htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8') ?></p>
+        <?php endif; ?>
 
- <h2 class='pt'>Добавить новую запись</h2>
-        <form method="post" action="" enctype="multipart/form-data">
-            <input type="text" name="title" placeholder="Название записи" required> <br>
-            <textarea name="content" placeholder="Текст записи" required></textarea> <br> <br>
-            <input type="file" name="image" accept="image/*"> <!--  /* // */   -->
-            <input type="hidden" name="action" value="add">
-            <button type="submit" class="bt">Опубликовать</button>
+        <form method="post">
+            <input type="hidden" name="action" value="login">
+            <input type="text" name="login" placeholder="Логин" required autocomplete="username">
+            <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password">
+            <button type="submit">Войти</button>
         </form>
-        
-        <h2 class='pt'>Удалить запись</h2>
-        <form method="post" action="">
-            <input type="text" name="titleToDelete" placeholder="Название записи для удаления" required>
-            <input type="hidden" name="action" value="delete">
-            <button type="submit" class="bt">Удалить</button>
-        </form>
-        <br><br><hr><br><br>
-        <h2 class='pt'> <a href="archive.php">Архивировать записи</a> </h2><br>
-        <br><br>
-        
-        <hr> 
+    </body>
+    </html>
+    <?php
+    exit;
+}
 
-        <h2 class='pt'>Существующие записи</h2>
-        <div>
-            <?php echo $posts; ?>
-        </div>
-    </div>
-</body>
-</html>
+// Ниже оставьте обработку записей и HTML из вашего скрипта.
