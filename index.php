@@ -1,43 +1,92 @@
 <?php
-// Проверяем, была ли отправлена форма
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $title = htmlspecialchars($_POST['title']);
-    $content = htmlspecialchars($_POST['content']);
+declare(strict_types=1);
 
-    // Сохраняем пост в файл
-    $post = "<div class='post'><h2>$title</h2><p>$content</p></div>";
-    file_put_contents('posts.html', $post, FILE_APPEND);
+$postsFile = __DIR__ . '/posts.json';
+$posts = [];
+
+if (is_file($postsFile)) {
+    $json = file_get_contents($postsFile);
+    $data = json_decode($json ?: '[]', true);
+
+    if (is_array($data)) {
+        $posts = $data;
+    }
 }
 
-// Загружаем существующие посты
-$posts = file_get_contents('posts.html');
-?>
+function escapeHtml(string $text): string
+{
+    return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
+function formatPostContent(string $text): string
+{
+    // Сначала экранируем текст, чтобы не допустить выполнения HTML.
+    $text = escapeHtml($text);
+
+    // Превращаем URL в ссылки.
+    $text = preg_replace_callback(
+        '~https?://[^\s<]+~u',
+        static function (array $matches): string {
+            $url = $matches[0];
+
+            return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">'
+                . $url
+                . '</a>';
+        },
+        $text
+    ) ?? $text;
+
+    return nl2br($text, false);
+}
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standalone blog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Записи</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .post {
-            border: 1px solid #ccc; /* Цвет рамки */
-            padding: 10px; /* Отступы внутри рамки */
-            margin: 10px 0; /* Отступы между постами */
-            border-radius: 5px; /* Закругление углов */
-            background-color: #f9f9f9; /* Цвет фона поста */
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
+    <div class="page">
+            <div class="container">
         <h1>Standalone blog</h1>
-        <h4>Decription</h4>
-        <div class="posts">
-            <?php echo $posts; ?>
-        </div>
+        <h4>Description</h4>
+
+
+        <?php if (!$posts): ?>
+            <p>Пока нет опубликованных записей.</p>
+        <?php else: ?>
+            <?php foreach ($posts as $post): ?>
+                <article class="p">
+                    <h2 class="pt">
+                        <?= escapeHtml((string)($post['title'] ?? 'Без названия')) ?>
+                    </h2>
+
+                    <?php
+                    $image = $post['image'] ?? null;
+
+                    if (
+                        is_string($image) &&
+                        preg_match('/\A[a-f0-9]{32}\.(jpg|png|gif|webp)\z/', $image) &&
+                        is_file(__DIR__ . '/uploads/' . $image)
+                    ):
+                    ?>
+                        <img
+                            src="<?= 'uploads/' . escapeHtml($image) ?>"
+                            alt="<?= escapeHtml((string)($post['title'] ?? '')) ?>"
+                            class="centered-image"
+                            style="max-width: 100%;"
+                        >
+                    <?php endif; ?>
+
+                    <p class="pg">
+                        <?= formatPostContent((string)($post['content'] ?? '')) ?>
+                    </p>
+                </article>
+                <hr>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </body>
 </html>
-
